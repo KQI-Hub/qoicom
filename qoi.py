@@ -1,20 +1,23 @@
 from bittools import byte_to_boollist, boollist_to_int_var, intclamp, generate_boollist
 from ppmgen import blank_bitmap_list
 
-def encode(image: list):
-    header = bytearray(b"qoif")
+def encode(image: list, emit_header: bool = True):
     width = len(image[0])
     height = len(image)
-    header.extend(width.to_bytes(4, 'big'))
-    header.extend(height.to_bytes(4, 'big'))
-    header.extend(int(4).to_bytes(1, 'little'))
-    header.extend(int(0).to_bytes(1, 'little'))
+    if emit_header:
+        header = bytearray(b"qoif")
+        header.extend(width.to_bytes(4, 'big'))
+        header.extend(height.to_bytes(4, 'big'))
+        header.extend(int(4).to_bytes(1, 'little'))
+        header.extend(int(0).to_bytes(1, 'little'))
+        footer = b"\x00\x00\x00\x00\x00\x00\x00\x01"
+    else:
+        header = b""
+        footer = b""
 
     last_pixel = (0,0,0,255)
     runcounter = 0
     index_table = [(0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0)] # initialize to blank
-
-    footer = b"\x00\x00\x00\x00\x00\x00\x00\x01"
 
     bitstream = bytearray()
     for y in range(height):
@@ -75,17 +78,23 @@ def encode(image: list):
 
     return bytes(header+bitstream+footer)
 
-def decode(qoi: bytes):
-    if not qoi[0:4] == b"qoif":
-        raise ValueError("Not a QOI Image!")
-    if len(qoi) < 15:
-        raise ValueError("Invalid QOI Image!")
-    width = int.from_bytes(qoi[4:8], "big")
-    height = int.from_bytes(qoi[8:12], "big")
-    channels = qoi[12]
-    colorspace = qoi[13]
+def decode(qoi: bytes, elementary_qoi: bool = False, width: int = None, height: int = None):
+    if elementary_qoi:
+        seek = 0 # Start of Elementary QOI Data
+        if not width or not height:
+            raise ValueError("Width and Height must be provided for Elementary QOI Streams")
+    else:
+        if not qoi[0:4] == b"qoif":
+            raise ValueError("Not a QOI Image!")
+        if len(qoi) < 15:
+            raise ValueError("Invalid QOI Image!")
+        width = int.from_bytes(qoi[4:8], "big")
+        height = int.from_bytes(qoi[8:12], "big")
+        channels = qoi[12]
+        colorspace = qoi[13]
+        seek = 14 # Start of QOI Data
+
     listmap = blank_bitmap_list(width, height)
-    seek = 14 # Start of QOI Data
 
     run_length = 0
     last_pixel = (0,0,0,255)
