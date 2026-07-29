@@ -1,0 +1,2 @@
+# qoicom
+QOI Compression Module
