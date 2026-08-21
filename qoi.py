@@ -78,11 +78,11 @@ def encode(image: list, emit_header: bool = True):
 
     return bytes(header+bitstream+footer)
 
-def decode(qoi: bytes, elementary_qoi: bool = False, width: int = None, height: int = None):
-    if elementary_qoi:
-        seek = 0 # Start of Elementary QOI Data
+def decode(qoi: bytes, raw_qoi: bool = False, width: int = None, height: int = None):
+    if raw_qoi:
+        seek = 0 # Start of Raw QOI Data
         if not width or not height:
-            raise ValueError("Width and Height must be provided for Elementary QOI Streams")
+            raise ValueError("Width and Height must be provided for Raw QOI Streams")
     else:
         if not qoi[0:4] == b"qoif":
             raise ValueError("Not a QOI Image!")
@@ -105,12 +105,12 @@ def decode(qoi: bytes, elementary_qoi: bool = False, width: int = None, height: 
     for y in range(height):
         for x in range(width):
             try:
-                if seek >= len(qoi):
-                    print("stream terminated prematurely!")
-                    return listmap
                 if run_length:
                     listmap[y][x] = last_pixel
                     run_length -= 1
+                elif seek >= len(qoi):
+                    print(f"stream terminated prematurely! stream bytes: {qoi}")
+                    return listmap
                 else:
                     byte_as_list = generate_boollist(qoi[seek], 8)
 
