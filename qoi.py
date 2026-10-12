@@ -4,8 +4,8 @@ from ppmgen import blank_bitmap_list
 def calcindex(rgb):
     return (rgb[0] * 3 + rgb[1] * 5 + rgb[2] * 7 + rgb[3] * 11) % 64
 
-def chpixdelt(currentrun, pixel, maxerror):
-    if maxerror == 0:
+def chpixdelt(currentrun, pixel, mxer):
+    if mxer == 0:
         return currentrun == pixel
 
     if currentrun is None:
