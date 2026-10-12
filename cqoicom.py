@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from ppmgen import ppm_to_list, pam_from_list
 from qoi import encode, decode
 
