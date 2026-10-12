@@ -1,9 +1,35 @@
 from bittools import byte_to_boollist, boollist_to_int_var, intclamp, generate_boollist
 from ppmgen import blank_bitmap_list
 
-def encode(image: list, emit_header: bool = True):
+def calcindex(rgb):
+    return (rgb[0] * 3 + rgb[1] * 5 + rgb[2] * 7 + rgb[3] * 11) % 64
+
+def chpixdelt(currentrun, pixel, maxerror):
+    if maxerror == 0:
+        return currentrun == pixel
+
+    if currentrun is None:
+        return False
+
+    if len(currentrun) == 4 and len(pixel) == 4:
+        if currentrun[3] != pixel[3]:
+            return False
+
+    re = abs(currentrun[0]-pixel[0])
+    ge = abs(currentrun[1]-pixel[1])
+    be = abs(currentrun[2]-pixel[2])
+
+    error = (( re * 2 + ge * 4 + be ) / 5)
+
+    if error > mxer:
+        return False
+    else:
+        return error+1 # +1 bias to make sure its truthy
+
+def encode(image: list, emit_header: bool = True, maxerror = 0):
     width = len(image[0])
     height = len(image)
+
     if emit_header:
         header = bytearray(b"qoif")
         header.extend(width.to_bytes(4, 'big'))
@@ -26,8 +52,8 @@ def encode(image: list, emit_header: bool = True):
             if len(current_pixel) == 3:
                 current_pixel+=(255,)
 
-            index_position = (current_pixel[0] * 3 + current_pixel[1] * 5 + current_pixel[2] * 7 + current_pixel[3] * 11) % 64
-            if last_pixel == current_pixel:
+            index_position = calcindex(current_pixel)
+            if chpixdelt(last_pixel, current_pixel, maxerror):
                 if runcounter == 62:
                     bitstream.append(191+runcounter)
                     runcounter = 1
@@ -44,16 +70,32 @@ def encode(image: list, emit_header: bool = True):
                 dr_dg = dr-dg
                 db_dg = db-dg
 
-                if current_pixel == index_table[index_position]:
+                doindex = (current_pixel == index_table[index_position])
+                realindex = True
+
+                accerr = maxerror+1
+                if maxerror and not doindex:
+                    for i, p in enumerate(index_table):
+                        err = chpixdelt(current_pixel, p, maxerror)
+                        if err and err-1 < accerr:
+                            doindex = True
+                            realindex = False
+                            accerr = err-1
+                            index_position = i
+                            current_pixel = p
+
+                if doindex:
                     byte = [False, False]
                     byte.extend(generate_boollist(index_position, 6))
                     bitstream.append(boollist_to_int_var(byte))
+
                 elif (dr > -3 and dr < 2) and (dg > -3 and dg < 2) and (db > -3 and db < 2) and current_pixel[3] == last_pixel[3]:
                     val_list = [False, True]
                     val_list.extend(generate_boollist(dr+2, 2))
                     val_list.extend(generate_boollist(dg+2, 2))
                     val_list.extend(generate_boollist(db+2, 2))
                     bitstream.append(boollist_to_int_var(val_list))
+
                 elif (dg > -33 and dg < 32) and (dr_dg > -9 and dr_dg < 8) and (db_dg > -9 and db_dg < 8) and current_pixel[3] == last_pixel[3]:
                     val_list = [True, False]
                     val_list.extend(generate_boollist(dg+32, 6))
@@ -61,6 +103,7 @@ def encode(image: list, emit_header: bool = True):
                     val_list_2 = generate_boollist(dr_dg+8, 4)
                     val_list_2.extend(generate_boollist(db_dg+8, 4))
                     bitstream.append(boollist_to_int_var(val_list_2))
+
                 else:
                     if current_pixel[3] == last_pixel[3]:
                         bitstream.append(254)
@@ -70,8 +113,11 @@ def encode(image: list, emit_header: bool = True):
                         bitstream.append(255)
                         for c in (0,1,2,3):
                             bitstream.append(current_pixel[c])
-                index_table[index_position] = current_pixel
+
+                if realindex: # dont write fake indexes
+                    index_table[index_position] = current_pixel
                 last_pixel = current_pixel
+
     if runcounter: # flush run
         bitstream.append(191+runcounter)
         runcounter = 0
