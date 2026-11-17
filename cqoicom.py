@@ -5,9 +5,19 @@ from qoi import encode, decode
 
 import sys
 
+if len(sys.argv) < 3:
+    print(f"""
+USAGE:
+{sys.argv[0]} input.ppm output.qoi <max_error [float], default: 0>
+""")
+    sys.exit()
+
 src = sys.argv[1]
 out = sys.argv[2]
-maxerr = int(sys.argv[3])
+if len(sys.argv) > 3:
+    maxerr = float(sys.argv[3])
+else:
+    maxerr = 0
 
 ppm_data = open(src, "rb").read()
 
