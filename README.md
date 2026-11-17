@@ -16,3 +16,8 @@ qoicom implements lossy runs and lossy indexing. the algorithm to calculate erro
 `( re * 2 + ge * 4 + be ) / 5`
 
 where re is red difference, ge is green difference, and be is blue difference.
+
+## lossless QOI vs lossy qoicom QOIs
+![Near-Lossless Error 1.2](qoicom_src_vs_e1.2.png)
+![Visually Lossless Error 2.5](qoicom_src_vs_e2.5.png)
+![Lossy Error 4.0](qoicom_src_vs_e4.0.png)
