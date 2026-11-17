@@ -8,7 +8,7 @@ import sys
 if len(sys.argv) < 3:
     print(f"""
 USAGE:
-{sys.argv[0]} input.ppm output.qoi <max_error [float], default: 0>
+{sys.argv[0]} input.[ppm/qoi] output.qoi <max_error [float], default: 0>
 """)
     sys.exit()
 
@@ -21,7 +21,10 @@ else:
 
 ppm_data = open(src, "rb").read()
 
-input_bitmap = ppm_to_list(ppm_data)
+if src.endswith(".qoi"):
+    input_bitmap = decode(ppm_data)
+else:
+    input_bitmap = ppm_to_list(ppm_data)
 
 qoi_bytes = encode(input_bitmap, maxerror = maxerr)
 
