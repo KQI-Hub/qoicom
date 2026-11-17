@@ -6,7 +6,7 @@ qoicom supports lossy QOI encoding based on relative color error, without doing 
 ## usage
 qoicom comes with cqoicom.py, an executable CLI wrapper for qoicom.
 
-`python cqoicom.py input.ppm output.qoi <max_error [float], default: 0>`
+`python cqoicom.py input.[ppm/qoi] output.qoi <max_error [float], default: 0>`
 
 cqoicom defaults to error 0, which should be lossless (please submit an issue if it's not!)
 
